@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Viewer - {{ username }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/portfolioViewer.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header class="portfolio-header">
+            <h1>Portfolio Dashboard</h1>
+            <p class="username">Welcome, {{ username }}</p>
+        </header>
+
+        <div class="summary-cards">
+            <div class="card">
+                <div class="card-label">Total Portfolio Value</div>
+                <div class="card-value">${{ "%.2f"|format(portfolio.total_value()) }}</div>
+                <div class="card-sublabel">
+                    <span class="{{ 'positive' if portfolio.total_profit_gain() >= 0 else 'negative' }}">
+                        {{ "+" if portfolio.total_profit_gain() >= 0 else "" }}${{ "%.2f"|format(portfolio.total_profit_gain()) }}
+                        ({{ "+" if portfolio.total_profit_gain_percent() >= 0 else "" }}{{ "%.2f"|format(portfolio.total_profit_gain_percent()) }}%)
+                    </span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-label">Available Cash</div>
+                <div class="card-value">${{ "%.2f"|format(portfolio.get_money()) }}</div>
+                <div class="card-sublabel">Buying Power</div>
+            </div>
+
+            <div class="card">
+                <div class="card-label">Time Remaining</div>
+                <div class="card-value timer">{{ portfolio.timer_status_string() }}</div>
+                <div class="card-sublabel">
+                    {% if portfolio.is_timer_expired() %}
+                        Expired: {{ portfolio.end_date_time.strftime('%b %d, %Y at %I:%M %p') }} UTC
+                    {% else %}
+                        Expires: {{ portfolio.end_date_time.strftime('%b %d, %Y at %I:%M %p') }} UTC
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-label">Total Invested</div>
+                <div class="card-value">${{ "%.2f"|format(portfolio.total_invested()) }}</div>
+                <div class="card-sublabel">In Holdings</div>
+            </div>
+        </div>
+
+        <div class="holdings-section">
+            <h2>Holdings</h2>
+            
+            {% if portfolio.holdings %}
+            <div class="table-container">
+                <table class="holdings-table">
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Last Price</th>
+                            <th>Shares</th>
+                            <th>Today's Gain/Loss</th>
+                            <th>Today's %</th>
+                            <th>Total Gain/Loss</th>
+                            <th>Total %</th>
+                            <th>Current Value</th>
+                            <th>% of Account</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ticker in portfolio.holdings.keys() %}
+                        <tr>
+                            <td class="symbol">{{ ticker }}</td>
+                            <td class="price">${{ "%.2f"|format(portfolio.holdings[ticker]['price_bought']) }}</td>
+                            <td class="shares">{{ "%.4f"|format(portfolio.holding_shares(ticker)) }}</td>
+                            <td class="{{ 'positive' if portfolio.todays_holding_profit(ticker) >= 0 else 'negative' }}">
+                                {{ "+" if portfolio.todays_holding_profit(ticker) >= 0 else "" }}${{ "%.2f"|format(portfolio.todays_holding_profit(ticker)) }}
+                            </td>
+                            <td class="{{ 'positive' if portfolio.todays_holding_percent_gain(ticker) >= 0 else 'negative' }}">
+                                {{ "+" if portfolio.todays_holding_percent_gain(ticker) >= 0 else "" }}{{ "%.2f"|format(portfolio.todays_holding_percent_gain(ticker)) }}%
+                            </td>
+                            <td class="{{ 'positive' if portfolio.holding_profit(ticker) >= 0 else 'negative' }}">
+                                {{ "+" if portfolio.holding_profit(ticker) >= 0 else "" }}${{ "%.2f"|format(portfolio.holding_profit(ticker)) }}
+                            </td>
+                            <td class="{{ 'positive' if portfolio.holding_profit_gain_percent(ticker) >= 0 else 'negative' }}">
+                                {{ "+" if portfolio.holding_profit_gain_percent(ticker) >= 0 else "" }}{{ "%.2f"|format(portfolio.holding_profit_gain_percent(ticker)) }}%
+                            </td>
+                            <td class="value">${{ "%.2f"|format(portfolio.holding_value(ticker)) }}</td>
+                            <td class="percentage">{{ "%.2f"|format(portfolio.holding_percent_of_portfolio(ticker)) }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="no-holdings">
+                <p>No holdings yet. Start investing to build your portfolio!</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="benchmark-section">
+            <h2>Benchmark Comparison (S&P 500)</h2>
+            <div class="benchmark-cards">
+                <div class="card small">
+                    <div class="card-label">S&P 500 Value</div>
+                    <div class="card-value small">${{ "%.2f"|format(portfolio.SNP_value()) }}</div>
+                </div>
+                <div class="card small">
+                    <div class="card-label">S&P 500 Gain/Loss</div>
+                    <div class="card-value small {{ 'positive' if portfolio.SNP_profit() >= 0 else 'negative' }}">
+                        {{ "+" if portfolio.SNP_profit() >= 0 else "" }}${{ "%.2f"|format(portfolio.SNP_profit()) }}
+                    </div>
+                </div>
+                <div class="card small">
+                    <div class="card-label">S&P 500 %</div>
+                    <div class="card-value small {{ 'positive' if portfolio.SNP_profit_percent() >= 0 else 'negative' }}">
+                        {{ "+" if portfolio.SNP_profit_percent() >= 0 else "" }}{{ "%.2f"|format(portfolio.SNP_profit_percent()) }}%
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <a href="{{ url_for('portfolioTrader') }}" class="btn btn-primary">Trade Assets</a>
+            <a href="{{ url_for('home') }}" class="btn btn-secondary">Back to Home</a>
+        </div>
+
+        <div class="danger-zone">
+            <h3>Danger Zone</h3>
+            <p>Deleting your portfolio is permanent and cannot be undone.</p>
+            <form method="POST" action="{{ url_for('delete_portfolio') }}" onsubmit="return confirm('Are you sure you want to delete your portfolio? This action cannot be undone!');">
+                <button type="submit" class="btn btn-danger">Delete Portfolio</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
