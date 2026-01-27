@@ -3,10 +3,11 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import JSON
 from sqlalchemy.ext.mutable import MutableDict
 from datetime import datetime, timedelta, date, time, timezone
+from zoneinfo import ZoneInfo
 
 
-from python.utils import *
-# from utils import *
+
+from .utils import *
 
 db = SQLAlchemy()
 
@@ -35,7 +36,7 @@ class Portfolio(db.Model):
     money = db.Column(db.Float)
     holdings = db.Column(MutableDict.as_mutable(JSON), nullable=False, default=dict)
     duration_days = db.Column(db.Integer, nullable=False)
-    end_date_time = db.Column(db.Date, nullable=True)
+    end_date_time = db.Column(db.DateTime, nullable=True)
     SNP_Shares = db.Column(db.Float, default=0.0)
 
     def __init__(self, *args, **kwargs):
@@ -52,6 +53,9 @@ class Portfolio(db.Model):
         return self.money
     
     # View Totals --------------------------------------------------
+    def view_current_stock_price(self, ticker):
+        return get_current_price(ticker)
+    
     def total_value(self):
         total = self.money
         for ticker, data in self.holdings.items():
@@ -92,8 +96,13 @@ class Portfolio(db.Model):
     def holding_value(self, ticker):
         if ticker not in self.holdings:
             return 0.0
-        current_price = get_current_price(ticker)
-        return current_price * self.holding_shares(ticker)
+        
+        if(self.is_timer_expired()):
+            price = self.get_price_at_end_date(ticker)
+        else:
+            price = get_current_price(ticker)
+        
+        return price * self.holding_shares(ticker)
     
     def todays_holding_percent_gain(self, ticker):
         if ticker not in self.holdings:
@@ -108,19 +117,25 @@ class Portfolio(db.Model):
     def holding_profit(self, ticker):
         if ticker not in self.holdings:
             return 0.0
+        if self.is_timer_expired():
+            price = self.get_price_at_end_date(ticker)
+        else:
+            price = get_current_price(ticker)
         data = self.holdings[ticker]
-        current_price = get_current_price(ticker)
         invested_amount = data['price_bought'] * data['shares']
-        current_value = current_price * data['shares']
+        current_value = price * data['shares']
         return current_value - invested_amount
     
     def holding_profit_gain_percent(self, ticker):
         if ticker not in self.holdings:
             return 0.0
+        if self.is_timer_expired():
+            price = self.get_price_at_end_date(ticker)
+        else:
+            price = get_current_price(ticker)
         data = self.holdings[ticker]
-        current_price = get_current_price(ticker)
         invested_amount = data['price_bought'] * data['shares']
-        current_value = current_price * data['shares']
+        current_value = price * data['shares']
         if invested_amount == 0:
             return 0.0
         return (current_value - invested_amount) / invested_amount * 100
@@ -145,6 +160,7 @@ class Portfolio(db.Model):
         print("Today's % Gain: {}".format(self.todays_holding_percent_gain(ticker)))
         print("Today's Profit/Gain: {}".format(self.todays_holding_profit(ticker)))
         print("Holding % of Portfolio: {}".format(self.holding_percent_of_portfolio(ticker)))
+    
 
     #view SNP Value --------------------------------------------------
     def SNP_shares(self):
@@ -155,12 +171,18 @@ class Portfolio(db.Model):
         return current_price * self.SNP_Shares
     
     def SNP_profit(self):
-        current_price = get_current_price("^GSPC")
-        return (current_price * self.SNP_Shares - self.starting_money)
+        if self.is_timer_expired():
+            price = self.get_price_at_end_date("^GSPC")
+        else:
+            price = get_current_price("^GSPC")
+        return (price * self.SNP_Shares - self.starting_money)
     
     def SNP_profit_percent(self):
-        current_price = get_current_price("^GSPC")
-        return ((current_price * self.SNP_Shares - self.starting_money) / self.starting_money) * 100
+        if self.is_timer_expired():
+            price = self.get_price_at_end_date("^GSPC")
+        else:
+            price = get_current_price("^GSPC")
+        return ((price * self.SNP_Shares - self.starting_money) / self.starting_money) * 100
     
     def SNP_price(self):
         return get_current_price("^GSPC")
@@ -170,6 +192,22 @@ class Portfolio(db.Model):
     
     def SNP_todays_profit_gain(self):
         return change_from_previous_close("^GSPC") * self.SNP_Shares
+    
+    def value_minus_SNP_value(self):
+        if self.is_timer_expired():
+            price = self.get_price_at_end_date("^GSPC")
+            SNP_value = price * self.SNP_Shares
+            return self.total_value() - SNP_value
+        return self.total_value() - self.SNP_value()
+    
+    def SNP_value_difference_percent(self):
+        SNP_value = self.SNP_value()
+        if SNP_value == 0:
+            return 0.0
+        if self.is_timer_expired():
+            price = self.get_price_at_end_date("^GSPC")
+            SNP_value = price * self.SNP_Shares
+        return (self.total_value() - SNP_value) / SNP_value * 100
     
     def print_SNP(self):
         print("S&P 500:")
@@ -182,16 +220,17 @@ class Portfolio(db.Model):
 
     #timer logic --------------------------------------------------
     def set_timer_end_date(self):
-        current_time = datetime.utcnow() 
-        end_date_holder = current_time + timedelta(days=self.duration_days)
+        current_time = datetime.utcnow()
+        end_date_holder = current_time + timedelta(days=self.duration_days-1)
         # FULL datetime, not date-only
+        print("--------------end_date_holder: {}".format(end_date_holder))
         result = nearest_past_market_close_datetime(end_date_holder)
+        if(result < current_time):
+            result = nearest_future_market_close_datetime(end_date_holder)
+        self.end_date_time = result
+        print("--------------self.end_date_time: {}".format(self.end_date_time))
         
-        # Ensure it's a datetime object, not a date
-        if isinstance(result, date) and not isinstance(result, datetime):
-            self.end_date_time = datetime.combine(result, time(16, 0))
-        else:
-            self.end_date_time = result
+            
     
     def seconds_remaining(self):
         now = datetime.now(timezone.utc).replace(tzinfo=None)
@@ -206,6 +245,7 @@ class Portfolio(db.Model):
         
         delta = end_dt - now
         return max(0, int(delta.total_seconds()))
+    
 
 
     def days_remaining(self):
@@ -226,7 +266,7 @@ class Portfolio(db.Model):
     def timer_status_string(self):
         if self.is_timer_expired():
             return "Timer expired"
-
+        
         seconds = self.seconds_remaining()
         days = seconds // 86400
         hours = (seconds % 86400) // 3600
@@ -234,8 +274,24 @@ class Portfolio(db.Model):
 
         return f"{int(days)} days, {int(hours)} hours, {int(minutes)} minutes remaining"
 
-        
-        
+    def get_end_date_time_string(self):
+        if self.end_date_time is None:
+            return ""
+
+        utc_dt = self.end_date_time.replace(tzinfo=timezone.utc)
+
+        cst_dt = utc_dt.astimezone(ZoneInfo("America/Chicago"))
+
+        return cst_dt.strftime("%Y-%m-%d %I:%M:%S %p CST")
+
+    
+    def get_price_at_end_date(self, ticker):
+        if self.end_date_time is None:
+            raise ValueError("End date time is not set.")
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        if (self.end_date_time > now):
+            raise ValueError("End date time is in the future.")
+        return get_stock_price_date(ticker, str(datetime_to_date(self.end_date_time)))
 
     #Manage holdings --------------------------------------------------
     def buy_holding(self, ticker, shares, price_bought):
@@ -280,9 +336,6 @@ class Portfolio(db.Model):
                 "price_bought": price_bought_holder,
             }
 
-        
-        
-    
     def sell_holding(self, ticker):
         if ticker not in self.holdings:
             raise ValueError("No holdings to sell.")
@@ -301,6 +354,7 @@ class Portfolio(db.Model):
     
     def clear_holdings(self):
         self.holdings = {}
+        
 
 
     #print representations --------------------------------------------------

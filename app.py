@@ -1,13 +1,20 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 # Update this line based on your folder name
-from python.models import db, User, Portfolio 
-from python.utils import get_price_at_time, get_current_price, money_to_shares, money_to_shares_at_time
+from python.models import *
+from python.utils import *
+import os
+import re
+
 
 app = Flask(__name__)
-app.secret_key = "supersecretkey"
+app.secret_key = os.environ.get("SECRET_KEY")
+if not app.secret_key:
+    raise ValueError("SECRET_KEY environment variable must be set")
+
 
 # Using a relative path for the SQLite DB
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///stock_tracker.db'
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'stock_tracker.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
@@ -19,7 +26,7 @@ with app.app_context():
 @app.route('/')
 def home():
     if "user_id" in session:
-        return redirect(url_for('home_page'))
+        return redirect(url_for('portfolio'))
     return redirect(url_for('login'))
 
 #login page
@@ -33,7 +40,7 @@ def login():
             session['user_id'] = user.id
             session['username'] = user.username
             flash('Login successful!', 'success')
-            return redirect(url_for('home_page'))
+            return redirect(url_for('portfolio'))
         else:
             flash('Invalid credentials', 'danger')
     return render_template('login.html')
@@ -43,7 +50,7 @@ def login():
 def logout():
     session.clear()
     flash('You have been logged out.', 'info')
-    return redirect(url_for('home'))
+    return redirect(url_for('login'))
 
 #register page
 @app.route("/register", methods=["GET", "POST"])
@@ -75,22 +82,22 @@ def portfolio():
     if "user_id" not in session:
         flash("Please log in to access this page.")
         return redirect(url_for('login'))
-    user = User.query.get(session['user_id'])
+    user = db.session.get(User, session['user_id'])
+    if user is None:
+        session.clear()
+        flash("Session expired. Please log in again.")
+        return redirect(url_for('login'))
     if user.Portfolio is None:
-        return redirect(url_for("portfolioCreater"))
-    print("Portfolio timer ends at: {}".format(user.Portfolio.end_date_time))
-    print("Seconds remaining: {}".format(user.Portfolio.seconds_remaining()))
-    print("Days remaining: {:.2f}".format(user.Portfolio.days_remaining()))
-    print("Timer status: {}".format(user.Portfolio.timer_status_string()))
+        return redirect(url_for("portfolioCreator"))
     return render_template('portfolioViewer.html', portfolio=user.Portfolio, username=session['username'])
 
-@app.route('/portfolioCreater', methods=['GET', 'POST'])
-def portfolioCreater():
-    if "user_id" not in session:
+@app.route('/portfolioCreator', methods=['GET', 'POST'])
+def portfolioCreator():
+    if "user_id" not in session :
         flash("Please log in to access this page.")
         return redirect(url_for('login'))
     if request.method == 'POST':
-        user = User.query.get_or_404(session['user_id'])
+        user = db.session.get(User, session['user_id'])
         if user.Portfolio is not None:
             flash("You already have a portfolio.")
             return redirect(url_for('portfolio'))
@@ -99,22 +106,24 @@ def portfolioCreater():
         portfolio = Portfolio(user_id=user.id, duration_days=duration_days, starting_money=starting_money, money=starting_money, holdings={})
         db.session.add(portfolio)
         db.session.commit()
-        flash("Portfolio created successfully!")
         return redirect(url_for('portfolio'))
-    return render_template('portfolioCreater.html', username=session['username'])
+    return render_template('portfolioCreator.html', username=session['username'])
 
 @app.route('/portfolioTrader', methods=['GET', 'POST'])
 def portfolioTrader():
     if "user_id" not in session:
         flash("Please log in to access this page.")
         return redirect(url_for('login'))
-    user = User.query.get_or_404(session['user_id'])
+    user = db.session.get(User, session['user_id'])
     if user.Portfolio is None:
         flash("You don't have a portfolio yet.")
-        return redirect(url_for('portfolioCreater'))
+        return redirect(url_for('portfolioCreator'))
     if request.method == 'POST':
         action = request.form['action']
-        ticker = request.form['ticker']
+        ticker = request.form['ticker'].upper()
+        if not bool(re.match(r'^[A-Z]{1,5}$', ticker)):
+            flash("Invalid ticker symbol", 'danger')
+            return redirect(url_for('portfolioTrader'))
         portfolio = user.Portfolio
         try:
             if action == 'buy':
@@ -129,15 +138,14 @@ def portfolioTrader():
                 else:
                     shares = float(request.form['amount'])
                     portfolio.sell_holding_shares(ticker, shares)
-                    print("Shares:", portfolio.holdings[ticker]["shares"])
                 
             db.session.add(portfolio)        
             db.session.commit()
-            
-            print("shares:", portfolio.holdings[ticker]["shares"])
-            print("portfolio total value after selling:", portfolio.total_value())
         except Exception as e:
-            flash(str(e), 'danger')
+            if(float(request.form['amount']) > portfolio.money and action == 'buy'):
+                flash("Insufficient funds to complete purchase", 'danger')
+            else:
+                flash("Stock ticker " + ticker + " not found", 'danger')
     return render_template('portfolioTrader.html', portfolio=user.Portfolio, username=session['username'])
 
 @app.route('/delete_portfolio', methods=['POST'])
@@ -146,7 +154,7 @@ def delete_portfolio():
         flash("Please log in to access this page.")
         return redirect(url_for('login'))
     
-    user = User.query.get_or_404(session['user_id'])
+    user = db.session.get(User, session['user_id'])
     
     if user.Portfolio is None:
         flash("You don't have a portfolio to delete.", 'info')
@@ -160,7 +168,7 @@ def delete_portfolio():
         db.session.rollback()
         flash(f"Error deleting portfolio: {str(e)}", 'danger')
     
-    return redirect(url_for('portfolioCreater'))
+    return redirect(url_for('portfolioCreator'))
 
 if __name__ == '__main__':
     app.run(debug=True)

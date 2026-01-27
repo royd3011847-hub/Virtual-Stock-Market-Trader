@@ -63,47 +63,44 @@ def get_current_price(ticker_symbol):
     return float(prices["Close"].iloc[-1])
 
 
-def get_price_at_time(ticker_symbol, date):
-    # Convert input string to a pandas Timestamp
-    time = pd.to_datetime(date)
-    stock = yf.Ticker(ticker_symbol)
+def get_stock_price_date(ticker, date_str):
+    """
+    Get the closing price of a stock for the given trading day.
+    Assumes the input date is a day when the market is open.
     
-    # Determine search window and interval based on input length
-    if len(date) <= 10:  # Daily data ('YYYY-MM-DD')
-        start = time - pd.Timedelta(days=7)
-        end = time + pd.Timedelta(days=7)
-        interval = "1d"
-    else:                # Intraday data ('YYYY-MM-DD HH:MM')
-        start = time - pd.Timedelta(hours=1)
-        end = time + pd.Timedelta(hours=1)
-        interval = "1m"
-
-    hist = stock.history(start=start, end=end, interval=interval)
-
-    if hist.empty:
-        return None
-
-    # If the stock data is timezone-aware, we must make our 'time' variable match it
-    if hist.index.tz is not None:
-        if time.tzinfo is None:
-            # Localize naive 'time' to the data's timezone
-            time = time.tz_localize(hist.index.tz)
-        else:
-            # If 'time' already has a timezone, convert it to the data's timezone
-            time = time.tz_convert(hist.index.tz)
-
-    # Get the index of the closest timestamp
-    idx = hist.index.get_indexer([time], method="nearest")
+    Parameters:
+    ticker (str): Stock ticker symbol (e.g., 'AAPL', 'GOOGL')
+    date_str (str): Date in format 'YYYY-MM-DD' (should be a trading day)
     
-    # Check if index is valid (get_indexer returns -1 if no match found)
-    if idx[0] == -1:
-        return None
+    Returns:
+    float: Closing price of the stock, or None if market was closed that day
+    """
+    try:
+        # Parse the input date
+        target_date = datetime.strptime(date_str, '%Y-%m-%d')
         
-    return float(hist.iloc[idx[0]]["Close"])
+        # Fetch data for the specific day (plus one day for yfinance end parameter)
+        end_date = target_date + timedelta(days=1)
+        
+        # Download stock data
+        stock = yf.Ticker(ticker)
+        data = stock.history(start=target_date.strftime('%Y-%m-%d'), 
+                           end=end_date.strftime('%Y-%m-%d'))
+        
+        # Check if we got data for the requested date
+        if data.empty:
+            print(f"Market was closed on {date_str}")
+            return None
+        
+        # Get the closing price
+        close_price = data['Close'].iloc[0]
+        
+        return float(close_price)
+    
+    except Exception as e:
+        print(f"Error fetching data: {e}")
+        return None
 
-
-def get_time_now():
-    return datetime.utcnow().isoformat()
 
 def _previous_and_current_close(ticker: str):
     stock = yf.Ticker(ticker)
@@ -149,6 +146,11 @@ def money_to_shares_at_time(money: float, ticker: str, date: str):
         return 0
     return (money / price_at_time)
 
+# Market calendar functions
+NYSE = mcal.get_calendar("NYSE")
+
+
+
 def is_market_open_calendar(check_date):
     """
     Returns True if the NYSE is open on the given date.
@@ -174,19 +176,11 @@ def is_market_open_calendar(check_date):
 
     return not schedule.empty
 
-NYSE = mcal.get_calendar("NYSE")
-EASTERN = pytz.timezone("US/Eastern")
 
 def nearest_past_market_open_date(input_date):
     """
     Returns the nearest past date (including the given date)
     on which the NYSE was open.
-
-    Parameters:
-        input_date (date | datetime | str): Date to check (YYYY-MM-DD)
-
-    Returns:
-        date
     """
 
     # Normalize input
@@ -195,23 +189,13 @@ def nearest_past_market_open_date(input_date):
     elif isinstance(input_date, datetime):
         input_date = input_date.date()
 
-    # Quick check: is the market open on this date?
-    if not NYSE.schedule(start_date=input_date, end_date=input_date).empty:
-        return input_date
+    # Walk backward until market is open
+    check_date = input_date
 
-    # Walk backwards until an open market day is found
-    check_date = input_date - timedelta(days=1)
-
-    while True:
-        schedule = NYSE.schedule(
-            start_date=check_date,
-            end_date=check_date
-        )
-
-        if not schedule.empty:
-            return check_date
-
+    while not is_market_open_calendar(check_date):
         check_date -= timedelta(days=1)
+
+    return check_date
 
 def nearest_past_market_close_datetime(input_date):
     """
@@ -220,7 +204,7 @@ def nearest_past_market_close_datetime(input_date):
     """
 
     market_date = nearest_past_market_open_date(input_date)
-
+    print("nearest past market open date: {}".format(market_date))
     schedule = NYSE.schedule(
         start_date=market_date,
         end_date=market_date
@@ -230,6 +214,50 @@ def nearest_past_market_close_datetime(input_date):
         raise RuntimeError("Market calendar returned no data for a valid trading day")
 
     close_time_utc = schedule.iloc[0]["market_close"]
-
+    
     # Convert to naive UTC datetime (IMPORTANT)
     return close_time_utc.tz_convert("UTC").to_pydatetime().replace(tzinfo=None)
+    
+def nearest_future_market_open_date(input_date):
+    """
+    Returns the nearest future date (including the given date)
+    on which the NYSE will be open.
+    """
+
+    # Normalize input
+    if isinstance(input_date, str):
+        input_date = datetime.strptime(input_date, "%Y-%m-%d").date()
+    elif isinstance(input_date, datetime):
+        input_date = input_date.date()
+
+    # Walk forward until market is open
+    check_date = input_date
+
+    while not is_market_open_calendar(check_date):
+        check_date += timedelta(days=1)
+
+    return check_date
+
+def nearest_future_market_close_datetime(input_date):
+    """
+    Returns:
+        datetime (UTC) of market close on nearest future open market day
+    """
+
+    market_date = nearest_future_market_open_date(input_date)
+    print("nearest future market open date: {}".format(market_date))
+    schedule = NYSE.schedule(
+        start_date=market_date,
+        end_date=market_date
+    )
+
+    if schedule.empty:
+        raise RuntimeError("Market calendar returned no data for a valid trading day")
+
+    close_time_utc = schedule.iloc[0]["market_close"]
+    
+    # Convert to naive UTC datetime (IMPORTANT)
+    return close_time_utc.tz_convert("UTC").to_pydatetime().replace(tzinfo=None)
+
+def datetime_to_date(dt: datetime):
+    return dt.date()

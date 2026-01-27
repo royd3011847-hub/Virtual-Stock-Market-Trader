@@ -1,28 +1,77 @@
 
 
-from plotting import *
-from utils import *
-from models import *
+from .plotting import *
+from .utils import *
+from .models import *
 #s and p ticker: 
 
 portfolio1 = Portfolio(
     user_id=1,
     starting_money=30000.0,
-    duration_days=3
+    duration_days=1,
+    money = 100000.0,
+    holdings={}
 )
+portfolios = []
+for num in range(1, 11):
+    portfolio1 = Portfolio(
+        user_id=1,
+        starting_money=30000.0,
+        duration_days=-num,
+        money = 100000.0,
+        holdings={}
+    )
+    portfolios.append(portfolio1)
+    print("Portfolio {} created.".format(num))
+    print("Portfolio timer ends at: {}".format(portfolios[num-1].end_date_time))
+    #print("Seconds remaining: {}".format(portfolios[num-1].seconds_remaining()))
+    #print("Days remaining: {:.2f}".format(portfolios[num-1].days_remaining()))
+    print("Timer status: {}".format(portfolios[num-1].timer_status_string()))
+    print("end date time string: {}".format(portfolios[num-1].get_end_date_time_string()))
+    print("price at end date for AAPL: {}".format(portfolios[num-1].get_price_at_end_date("AAPL")))
+    print("--------------------------------------------------")
 
-print("Portfolio timer ends at: {}".format(portfolio1.end_date_time))
-print("Seconds remaining: {}".format(portfolio1.seconds_remaining()))
-print("Days remaining: {:.2f}".format(portfolio1.days_remaining()))
-print("Timer status: {}".format(portfolio1.timer_status_string()))
+dt = datetime.now()
+print(dt)
+print(datetime_to_date(dt))
 
-print(nearest_past_market_close_datetime("2026-01-01"))
+print("Example 1: Apple on a recent trading day")
+price = get_stock_price_date('AAPL', '2026-01-15')
+if price:
+    print(f"AAPL closing price: ${price:.2f}\n")
 
-print(nearest_past_market_close_datetime("2026-07-04"))
+# Example 2: Different stock
+print("Example 2: Microsoft on a different date")
+price = get_stock_price_date('MSFT', '2025-06-10')
+if price:
+    print(f"MSFT closing price: ${price:.2f}\n")
 
-print(nearest_past_market_close_datetime("2026-07-06"))
+# Example 3: Tesla
+print("Example 3: Tesla")
+price = get_stock_price_date('TSLA', '2026-01-20')
+if price:
+    print(f"TSLA closing price: ${price:.2f}\n")
 
-print(nearest_past_market_close_datetime("2026-09-16"))
+# Example 4: Weekend (market closed)
+print("Example 4: Trying a Saturday (market should be closed)")
+price = get_stock_price_date('AAPL', '2025-12-13')
+if price:
+    print(f"AAPL closing price: ${price:.2f}\n")
+
+# Example 5: Google
+print("Example 5: Google")
+price = get_stock_price_date('GOOGL', '2026-01-05')
+if price:
+    print(f"GOOGL closing price: ${price:.2f}\n")
+
+
+# print(nearest_past_market_close_datetime("2026-01-01"))
+
+# print(nearest_past_market_close_datetime("2026-07-04"))
+
+# print(nearest_past_market_close_datetime("2026-07-06"))
+
+# print(nearest_past_market_close_datetime("2026-09-16"))
 
 # ticket1 = "AAPL"
 # ticket2 = "MSFT"
@@ -48,15 +97,15 @@ print(nearest_past_market_close_datetime("2026-09-16"))
 # print("6--------------------------------")
 # portfolio1.print_portfolio()
 
-print(is_market_open_calendar("2026-01-01"))  # False (New Year's Day)
-print(is_market_open_calendar("2026-01-02"))  # True
-print(is_market_open_calendar("2026-07-03"))  # False (observed July 4th)
-print(is_market_open_calendar("2035-03-15"))  # True
+# print(is_market_open_calendar("2026-01-01"))  # False (New Year's Day)
+# print(is_market_open_calendar("2026-01-02"))  # True
+# print(is_market_open_calendar("2026-07-03"))  # False (observed July 4th)
+# print(is_market_open_calendar("2035-03-15"))  # True
 
-print(nearest_past_market_open_date("2026-01-01"))  # 2025-12-31
-print(nearest_past_market_open_date("2026-01-04"))  # 2026-01-02 (Saturday → Friday)
-print(nearest_past_market_open_date("2026-07-04"))  # 2026-07-02 (holiday)
-print(nearest_past_market_open_date("2026-07-06"))  # 2026-07-06 (already open)
+# print(nearest_past_market_open_date("2026-01-01"))  # 2025-12-31
+# print(nearest_past_market_open_date("2026-01-04"))  # 2026-01-02 (Saturday → Friday)
+# print(nearest_past_market_open_date("2026-07-04"))  # 2026-07-02 (holiday)
+# print(nearest_past_market_open_date("2026-07-06"))  # 2026-07-06 (already open)
 
 
 

@@ -1,0 +1,10 @@
+version: '3.8'
+services:
+  web:
+    build: .
+    ports:
+      - "80:5000"
+    volumes:
+      - ./stock_tracker.db:/app/stock_tracker.db
+    environment:
+      - SECRET_KEY=${SECRET_KEY}

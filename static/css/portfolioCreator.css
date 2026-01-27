@@ -18,7 +18,7 @@ body {
     background: white;
     border-radius: 20px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    max-width: 500px;
+    max-width: 700px;
     width: 100%;
     padding: 40px;
     animation: slideIn 0.5s ease-out;
@@ -42,13 +42,13 @@ body {
 
 .header h1 {
     color: #333;
-    font-size: 28px;
+    font-size: 40px;
     margin-bottom: 10px;
 }
 
 .header p {
     color: #666;
-    font-size: 14px;
+    font-size: 22px;
 }
 
 .username-display {
@@ -58,7 +58,8 @@ body {
     border-radius: 10px;
     text-align: center;
     margin-bottom: 30px;
-    font-weight: 500;
+    font-weight: 570;
+    font-size: 20px;
 }
 
 .form-group {
@@ -68,7 +69,7 @@ body {
 label {
     display: block;
     color: #333;
-    font-weight: 600;
+    font-weight: 500;
     margin-bottom: 8px;
     font-size: 14px;
 }
@@ -78,11 +79,11 @@ input[type="number"] {
     padding: 14px 16px;
     border: 2px solid #e0e0e0;
     border-radius: 10px;
-    font-size: 16px;
+    font-size: 20px;
     transition: all 0.3s ease;
     background: #f8f9fa;
 }
-
+x
 input[type="number"]:focus {
     outline: none;
     border-color: #0c8324;
@@ -107,7 +108,7 @@ input[type="number"]:focus {
 
 .info-box p {
     color: #555;
-    font-size: 13px;
+    font-size: 17px;
     line-height: 1.6;
 }
 
@@ -128,7 +129,7 @@ input[type="number"]:focus {
 
 .btn-submit:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 6px 20px rgba(23, 70, 47, 0.6);
 }
 
 .btn-submit:active {

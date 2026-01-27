@@ -6,8 +6,7 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background: linear-gradient(135deg, #17462f 0%, #104347 100%);
-    min-height: 100vh;
+    background-color: #17462f;
     padding: 20px;
     color: #333;
 }
@@ -23,22 +22,259 @@ body {
 
 /* Header */
 .portfolio-header {
-    background: linear-gradient(135deg, #17462f 0%, #104347 100%);
-    color: white;
+    background-color: #0d3322;
+    color: #f2f296;
+    text-shadow: 0 0 10px rgba(255, 234, 0, 0.6);
     padding: 30px 40px;
     text-align: center;
 }
 
 .portfolio-header h1 {
     font-family: 'Bebas Neue', Roboto;
-    font-size: 2.5em;
-    margin-bottom: 10px;
+    font-size: 7.5em;
     font-weight: 700;
 }
 
-.username {
+/* Timer Section */
+.timer-section {
+    background-color: #0d3322;
+    padding: 10px;
+    text-align: center;
+    border-bottom: 4px solid #0d3322;
+    position: relative;
+    overflow: hidden;
+    transition: background-color 0.5s ease;
+}
+
+.timer-section.expired-win {
+    background: linear-gradient(135deg, #1e7e34 0%, #2ecc71 100%);
+    border-bottom: 4px solid #27ae60;
+}
+
+.timer-section.expired-loss {
+    background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%);
+    border-bottom: 4px solid #a93226;
+}
+
+.timer-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+}
+
+.timer-section.expired-win::before {
+    background: radial-gradient(circle at 30% 50%, rgba(255, 215, 0, 0.2) 0%, transparent 50%),
+                radial-gradient(circle at 70% 50%, rgba(255, 215, 0, 0.2) 0%, transparent 50%);
+    animation: celebration 2s ease-in-out infinite;
+}
+
+.timer-section.expired-loss::before {
+    background: radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.2) 0%, transparent 70%);
+}
+
+@keyframes celebration {
+    0%, 100% {
+        opacity: 0.5;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+.timer-label {
+    font-size: 1.2em;
+    color: rgba(255, 255, 238, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-bottom: 15px;
+    font-weight: 600;
+    position: relative;
+    z-index: 1;
+}
+
+.timer-value {
+    font-size: 3.6em;
+    font-weight: 700;
+    color: #ffffee;
+    margin-bottom: 10px;
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    letter-spacing: 2px;
+    position: relative;
+    z-index: 1;
+}
+
+.win-status {
+    color: #fff;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.8),
+                 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.loss-status {
+    color: #fff;
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+
+.timer-sublabel {
     font-size: 1.1em;
-    opacity: 0.9;
+    color: rgba(255, 255, 238, 0.9);
+    font-weight: 500;
+    letter-spacing: 1px;
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 1;
+}
+
+.timer-sublabel:last-child {
+    margin-bottom: 20px;
+    font-size: 0.95em;
+    color: rgba(255, 255, 238, 0.7);
+}
+
+/* Comparison Section */
+.comparison-section {
+    background-color: #104347;
+    padding: 40px;
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.comparison-section::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(255, 255, 238, 0.1) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.comparison-section h2 {
+    text-align: center;
+    font-size: 1.8em;
+    margin-bottom: 30px;
+    color: #f2f296;
+    text-shadow: 0 0 10px rgba(168, 154, 1, 0.6);
+    font-weight: 700;
+    letter-spacing: 1px;
+    position: relative;
+    z-index: 1;
+}
+
+.comparison-content {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    gap: 40px;
+    max-width: 900px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+}
+
+.comparison-metric {
+    flex: 1;
+    text-align: center;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: transform 0.3s, background 0.3s;
+}
+
+.comparison-metric:hover {
+    transform: translateY(-5px);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.metric-label {
+    font-size: 0.95em;
+    color: rgba(255, 255, 238, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.metric-value {
+    font-size: 3em;
+    font-weight: 700;
+    margin-bottom: 10px;
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    letter-spacing: 1px;
+}
+
+.metric-value.positive {
+    color: #2ecc71;
+}
+
+.metric-value.negative {
+    color: #ff6b6b;
+}
+
+.metric-description {
+    font-size: 1em;
+    color: rgba(255, 255, 238, 0.9);
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+.comparison-divider {
+    width: 2px;
+    height: 120px;
+    background: linear-gradient(to bottom, 
+        transparent 0%, 
+        rgba(255, 255, 255, 0.3) 20%, 
+        rgba(255, 255, 255, 0.3) 80%, 
+        transparent 100%);
+}
+
+/* Responsive Design for Comparison Section */
+@media (max-width: 768px) {
+    .comparison-section {
+        padding: 30px 20px;
+    }
+
+    .comparison-section h2 {
+        font-size: 1.5em;
+        margin-bottom: 20px;
+    }
+
+    .comparison-content {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .comparison-divider {
+        width: 80%;
+        height: 2px;
+        background: linear-gradient(to right, 
+            transparent 0%, 
+            rgba(255, 255, 255, 0.3) 20%, 
+            rgba(255, 255, 255, 0.3) 80%, 
+            transparent 100%);
+    }
+
+    .metric-value {
+        font-size: 2.2em;
+    }
+
+    .metric-label {
+        font-size: 0.85em;
+        letter-spacing: 1.5px;
+    }
+
+    .metric-description {
+        font-size: 0.9em;
+    }
 }
 
 /* Summary Cards */
@@ -47,7 +283,7 @@ body {
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 20px;
     padding: 40px;
-    background: #f8f9fa;
+    background: #faf9f1;
 }
 
 .card {
@@ -81,10 +317,6 @@ body {
 
 .card-value.small {
     font-size: 1.5em;
-}
-
-.card-value.timer {
-    color: #667eea;
 }
 
 .card-sublabel {
@@ -127,7 +359,7 @@ body {
 }
 
 .holdings-table thead {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #17462f 0%, #104347 100%);
     color: white;
 }
 
@@ -146,7 +378,7 @@ body {
 }
 
 .holdings-table tbody tr:hover {
-    background-color: #f8f9fa;
+    background-color: #faf9f1;
 }
 
 .holdings-table td {
@@ -156,7 +388,7 @@ body {
 
 .holdings-table .symbol {
     font-weight: 700;
-    color: #667eea;
+    color: #17462f;
     font-size: 1.1em;
 }
 
@@ -185,7 +417,7 @@ body {
 /* Benchmark Section */
 .benchmark-section {
     padding: 40px;
-    background: #f8f9fa;
+    background: #faf9f1;
 }
 
 .benchmark-section h2 {
@@ -288,6 +520,23 @@ body {
 @media (max-width: 768px) {
     .portfolio-header h1 {
         font-size: 1.8em;
+    }
+
+    .timer-section {
+        padding: 30px 20px;
+    }
+
+    .timer-label {
+        font-size: 1em;
+        letter-spacing: 2px;
+    }
+
+    .timer-value {
+        font-size: 2.5em;
+    }
+
+    .timer-sublabel {
+        font-size: 0.9em;
     }
 
     .summary-cards {

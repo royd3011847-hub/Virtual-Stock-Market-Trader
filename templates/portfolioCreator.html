@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Your Portfolio</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/portfolioCreater.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/portfolioCreator.css') }}">
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <a href="/" class="btn-back">← Back to Home</a>
+            <a href="{{ url_for('login') }}" class="btn-back">← Back to Login</a>
             <h1>Create Your Portfolio</h1>
-            <p>Can you beat the market?</p>
+            <p>(nerd)</p>
         </div>
 
         <!-- Flask flash messages would go here -->
@@ -26,14 +26,14 @@
         {% endwith %} -->
 
         <div class="username-display">
-            Set up your portfolio parameters</strong>
+            Set up your portfolio parameters
         </div>
 
         <div class="info-box">
-            <p>A seperate account will be created with the same paramiters. However, all the money will go into the S&P. Can you out earn it?</p>
+            <p>Throughout the stock market history, professional investors have struggled to beat the S&P 500 index. Can you do better?</p>
         </div>
 
-        <form method="POST" action="/portfolioCreater">
+        <form method="POST" action="/portfolioCreator">
             <div class="form-group">
                 <label for="starting_money">Starting Capital ($)</label>
                 <input 
@@ -61,7 +61,7 @@
                     value="30" 
                     required
                 >
-                <span class="input-hint">Enter the number of days you have to beat the S&P (Max: 1000 days)</span>
+                <span class="input-hint">Enter the number of days you have to beat the S&P. Timer will end rounded down to the end of the nearest market day (Max: 1000 days)</span>
             </div>
 
             <button type="submit" class="btn-submit">Create Portfolio</button>
