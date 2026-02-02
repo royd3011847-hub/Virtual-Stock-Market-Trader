@@ -1,70 +1,74 @@
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background: linear-gradient(135deg, #17462f 0%, #104347 100%);
-    display: flex;
-    flex-direction: column; /* Stack elements vertically */
-    align-items: center;    /* Center elements horizontally */
-    height: 100vh;
-    margin: 0;
-    padding: 20px;          /* Add some breathing room at the edges */
-    box-sizing: border-box;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+    Cantarell, sans-serif;
+  background: linear-gradient(135deg, #17462f 0%, #104347 100%);
+  display: flex;
+  flex-direction: column; /* Stack elements vertically */
+  align-items: center; /* Center elements horizontally */
+  height: 100vh;
+  margin: 0;
+  padding: 20px; /* Add some breathing room at the edges */
+  box-sizing: border-box;
 }
 h1 {
-    font-family: 'Bebas Neue', Roboto;
-    color: #f2f296;
-    font-size: clamp(2rem, 10vw, 6rem);
-    font-weight: 400;
-    letter-spacing: 1px;
-    margin: 5px 0 10px;
-    text-align: center;
-    text-shadow: 0 0 10px rgba(255, 234, 0, 0.6);
+  font-family: "Bebas Neue", Roboto;
+  color: #f2f296;
+  font-size: clamp(2rem, 10vw, 6rem);
+  font-weight: 400;
+  letter-spacing: 1px;
+  margin: 5px 0 10px;
+  text-align: center;
+  text-shadow: 0 0 10px rgba(255, 234, 0, 0.6);
 }
 
 .container {
-    text-align: center;
+  text-align: center;
 }
 
 /* This makes the forms stay side-by-side */
 .button-group {
-    display: flex;
-    gap: 15px; /* Space between buttons */
-    justify-content: center;
-    margin-top: 20px;
+  display: flex;
+  gap: 15px; /* Space between buttons */
+  justify-content: center;
+  margin-top: 20px;
 }
 
 /* Base button styling */
 .btn {
-    padding: 12px 24px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: bold;
-    transition: background-color 0.3s ease, transform 0.1s;
-    min-width: 150px;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  transition:
+    background-color 0.3s ease,
+    transform 0.1s;
+  min-width: 150px;
 }
 
 /* Portfolio Button (Green) */
 .btn-portfolio {
-    background-color: #4CAF50;
-    color: white;
+  background-color: #4caf50;
+  color: white;
 }
 
 .btn-portfolio:hover {
-    background-color: #45a049;
+  background-color: #45a049;
 }
 
 /* Logout Button (Red/Gray for contrast) */
 .btn-logout {
-    background-color: #f44336;
-    color: white;
+  background-color: #f44336;
+  color: white;
 }
 
 .btn-logout:hover {
-    background-color: #da190b;
+  background-color: #da190b;
 }
 
 /* Slight "click" effect */
 .btn:active {
-    transform: scale(0.98);
+  transform: scale(0.98);
 }

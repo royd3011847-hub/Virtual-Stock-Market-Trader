@@ -26,7 +26,7 @@ for num in range(1, 11):
     print("Portfolio timer ends at: {}".format(portfolios[num-1].end_date_time))
     #print("Seconds remaining: {}".format(portfolios[num-1].seconds_remaining()))
     #print("Days remaining: {:.2f}".format(portfolios[num-1].days_remaining()))
-    print("Timer status: {}".format(portfolios[num-1].timer_status_string()))
+    print("Timer status: {}".format(  portfolios[num-1].timer_status_string()))
     print("end date time string: {}".format(portfolios[num-1].get_end_date_time_string()))
     print("price at end date for AAPL: {}".format(portfolios[num-1].get_price_at_end_date("AAPL")))
     print("--------------------------------------------------")

@@ -1,50 +1,51 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/login.css') }}"
+    />
     <title>Login - Beat the S&P 500</title>
-</head>
-<body>
+  </head>
+  <body>
     <div class="login-container">
-        <div class="login-header">
-            <h1>Can you beat the S&P?</h1>
-            <p class="tagline">Test your trading skills against the market</p>
+      <div class="login-header">
+        <h1>Can you beat the S&P?</h1>
+        <p class="tagline">Test your trading skills against the market</p>
+      </div>
+
+      <div class="login-card">
+        <h2>Login</h2>
+
+        {% with messages = get_flashed_messages() %} {% if messages %}
+        <div class="flash-messages">
+          {% for message in messages %}
+          <div class="alert alert-danger">{{ message }}</div>
+          {% endfor %}
         </div>
+        {% endif %} {% endwith %}
 
-        <div class="login-card">
-            <h2>Login</h2>
-            
-            {% with messages = get_flashed_messages() %}
-              {% if messages %}
-                <div class="flash-messages">
-                {% for message in messages %}
-                  <div class="alert alert-danger">{{ message }}</div>
-                {% endfor %}
-                </div>
-              {% endif %}
-            {% endwith %}
+        <form method="post" class="login-form">
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" required />
+          </div>
 
-            <form method="post" class="login-form">
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required>
-                </div>
-                
-                <button type="submit" class="btn btn-login">Login</button>
-            </form>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required />
+          </div>
 
-            <div class="register-link">
-                <p>Don't have an account? <a href="/register">Register here</a></p>
-            </div>
+          <button type="submit" class="btn btn-login">Login</button>
+        </form>
+
+        <div class="register-link">
+          <p>Don't have an account? <a href="/register">Register here</a></p>
         </div>
+      </div>
     </div>
-</body>
+  </body>
 </html>
