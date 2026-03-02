@@ -6,7 +6,6 @@ from datetime import datetime, timedelta, date, time, timezone
 from zoneinfo import ZoneInfo
 
 
-
 from .utils import *
 
 db = SQLAlchemy()
@@ -23,9 +22,6 @@ class User(db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
-    
-
-
 
 
 # Portfolio model to track user holdings
@@ -42,17 +38,20 @@ class Portfolio(db.Model):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if self.money is None:
-            self.money = self.starting_money
+        self.money = self.starting_money
         
+        #set SNP shares based on starting money
+        if(get_current_price("^GSPC") is None):
+            raise ValueError("Could not retrieve S&P 500 price. Please try again later.")
         SNP_price = get_current_price("^GSPC")
         self.SNP_Shares = self.starting_money / SNP_price
+        
         self.set_timer_end_date()
 
     def get_money(self):
-        return self.money
+        return round_down_dollar(self.money)
     
-    # View Totals --------------------------------------------------
+    # View Totals from holdings --------------------------------------------------
     def view_current_stock_price(self, ticker):
         return get_current_price(ticker)
     
@@ -60,13 +59,13 @@ class Portfolio(db.Model):
         total = self.money
         for ticker, data in self.holdings.items():
             total += get_current_price(ticker) * data['shares']
-        return total
+        return round_down_dollar(total)
     
     def total_invested(self):
         total = 0.0
         for ticker, data in self.holdings.items():
             total += data['price_bought'] * data['shares']
-        return total
+        return round_down_dollar(total)
     
     def total_profit_gain(self):
         return self.total_value() - self.starting_money    
@@ -75,15 +74,6 @@ class Portfolio(db.Model):
         if self.starting_money == 0:
             return 0.0
         return (self.total_profit_gain() / self.starting_money * 100)
-    
-    def print_portfolio(self):
-        print("Portfolio Summary:")
-        print("Total Value: ${:.2f}".format(self.total_value()))
-        print("Total Invested: ${:.2f}".format(self.total_invested()))
-        print("Available Money: ${:.2f}".format(self.get_money()))
-        print("Holdings:")
-        for ticker in self.holdings:
-            print(" - {}: {} value".format(ticker, self.holding_value(ticker)))
     
     #view Individual Holdings --------------------------------------------------
 
@@ -112,7 +102,7 @@ class Portfolio(db.Model):
     def todays_holding_profit(self, ticker):
         if ticker not in self.holdings:
             return 0.0
-        return change_from_previous_close(ticker) * self.holdings[ticker]['shares']
+        return round_down_dollar(change_from_previous_close(ticker) * self.holdings[ticker]['shares'])
     
     def holding_profit(self, ticker):
         if ticker not in self.holdings:
@@ -148,18 +138,6 @@ class Portfolio(db.Model):
             return 0.0
         holding_value = self.holding_value(ticker)
         return (holding_value / total_value) * 100
-    
-    def print_holding(self, ticker):
-        if ticker not in self.holdings:
-            return f"{ticker}: No holdings."
-        print("{}:".format(ticker))
-        print("holding Value: {}".format(self.holding_value(ticker)))
-        print("holding Shares: {}".format(self.holding_shares(ticker)))
-        print("total holding Profit/Gain: {}".format(self.holding_profit(ticker)))
-        print("total holding Profit/Gain %: {}".format(self.holding_profit_gain_percent(ticker)))
-        print("Today's % Gain: {}".format(self.todays_holding_percent_gain(ticker)))
-        print("Today's Profit/Gain: {}".format(self.todays_holding_profit(ticker)))
-        print("Holding % of Portfolio: {}".format(self.holding_percent_of_portfolio(ticker)))
     
 
     #view SNP Value --------------------------------------------------
@@ -208,27 +186,16 @@ class Portfolio(db.Model):
             price = self.get_price_at_end_date("^GSPC")
             SNP_value = price * self.SNP_Shares
         return (self.total_value() - SNP_value) / SNP_value * 100
-    
-    def print_SNP(self):
-        print("S&P 500:")
-        print("SNP Value: {}".format(self.SNP_value()))
-        print("SNP Shares: {}".format(self.SNP_shares()))
-        print("Total SNP Profit/Gain: {}".format(self.SNP_profit()))
-        print("Total SNP Profit/Gain %: {}".format(self.SNP_profit_percent()))
-        print("Today's SNP % Gain: {}".format(self.SNP_todays_percent_gain()))
-        print("Today's SNP Profit/Gain: {}".format(self.SNP_todays_profit_gain()))
 
     #timer logic --------------------------------------------------
     def set_timer_end_date(self):
         current_time = datetime.utcnow()
         end_date_holder = current_time + timedelta(days=self.duration_days-1)
         # FULL datetime, not date-only
-        print("--------------end_date_holder: {}".format(end_date_holder))
         result = nearest_past_market_close_datetime(end_date_holder)
         if(result < current_time):
             result = nearest_future_market_close_datetime(end_date_holder)
         self.end_date_time = result
-        print("--------------self.end_date_time: {}".format(self.end_date_time))
         
             
     
@@ -294,6 +261,16 @@ class Portfolio(db.Model):
         return get_stock_price_date(ticker, str(datetime_to_date(self.end_date_time)))
 
     #Manage holdings --------------------------------------------------
+    def sort_holdings_by_value(self):
+        if not self.holdings:
+            return
+        sorted_holdings = dict(
+            sorted(self.holdings.items(),
+            key=lambda item: get_current_price(item[0]) * item[1]['shares'],
+            reverse=True))
+        self.holdings = sorted_holdings
+        self.print_portfolio()
+    
     def buy_holding(self, ticker, shares, price_bought):
         if self.money - (shares * price_bought) < 0:
             raise ValueError("Insufficient funds to buy holdings.")
@@ -317,13 +294,24 @@ class Portfolio(db.Model):
                 "shares": shares,
                 "price_bought": price_bought,
             }
+        self.sort_holdings_by_value()
+        
+    def sell_holding(self, ticker):
+        if ticker not in self.holdings:
+            raise ValueError("No holdings to sell.")
+
+        current_price = get_current_price(ticker)
+        shares = self.holdings[ticker]["shares"]
+        self.money += shares * current_price
+        del self.holdings[ticker]
+        self.sort_holdings_by_value()
 
     def sell_holding_shares(self, ticker, shares):
         if ticker not in self.holdings or self.holdings[ticker]["shares"] < shares - 0.001:
             raise ValueError("Insufficient shares to sell.")
         
         if (self.holdings[ticker]["shares"] - shares) <= 0.0003:
-            del self.holdings[ticker]
+            self.sell_holding(ticker)
         else:
             price_bought_holder = self.holdings[ticker]["price_bought"]
             shares_holder = self.holdings[ticker]["shares"]
@@ -335,16 +323,9 @@ class Portfolio(db.Model):
                 "shares": shares_holder - shares,
                 "price_bought": price_bought_holder,
             }
+        self.sort_holdings_by_value()
 
-    def sell_holding(self, ticker):
-        if ticker not in self.holdings:
-            raise ValueError("No holdings to sell.")
-
-        current_price = get_current_price(ticker)
-        shares = self.holdings[ticker]["shares"]
-        self.money += shares * current_price
-        del self.holdings[ticker]
-
+    
     def sell_all_holdings(self):
         if not self.holdings:
             return
@@ -354,8 +335,6 @@ class Portfolio(db.Model):
     
     def clear_holdings(self):
         self.holdings = {}
-        
-
 
     #print representations --------------------------------------------------
     def __repr__(self):
@@ -363,4 +342,34 @@ class Portfolio(db.Model):
     
     def holdings_to_string(self):
         return ", ".join([f"{ticker}: {data['shares']} shares at ${data['price_bought']}\n" for ticker, data in self.holdings.items()])
+    
+    def print_holding(self, ticker):
+        if ticker not in self.holdings:
+            return f"{ticker}: No holdings."
+        print("{}:".format(ticker))
+        print("holding Value: {}".format(self.holding_value(ticker)))
+        print("holding Shares: {}".format(self.holding_shares(ticker)))
+        print("total holding Profit/Gain: {}".format(self.holding_profit(ticker)))
+        print("total holding Profit/Gain %: {}".format(self.holding_profit_gain_percent(ticker)))
+        print("Today's % Gain: {}".format(self.todays_holding_percent_gain(ticker)))
+        print("Today's Profit/Gain: {}".format(self.todays_holding_profit(ticker)))
+        print("Holding % of Portfolio: {}".format(self.holding_percent_of_portfolio(ticker)))
+    
+    def print_portfolio(self):
+        print("Portfolio Summary:")
+        print("Total Value: ${:.2f}".format(self.total_value()))
+        print("Total Invested: ${:.2f}".format(self.total_invested()))
+        print("Available Money: ${:.2f}".format(self.get_money()))
+        print("Holdings:")
+        for ticker in self.holdings:
+            print(" - {}: {} value".format(ticker, self.holding_value(ticker)))
+            
+    def print_SNP(self):
+        print("S&P 500:")
+        print("SNP Value: {}".format(self.SNP_value()))
+        print("SNP Shares: {}".format(self.SNP_shares()))
+        print("Total SNP Profit/Gain: {}".format(self.SNP_profit()))
+        print("Total SNP Profit/Gain %: {}".format(self.SNP_profit_percent()))
+        print("Today's SNP % Gain: {}".format(self.SNP_todays_percent_gain()))
+        print("Today's SNP Profit/Gain: {}".format(self.SNP_todays_profit_gain()))
         

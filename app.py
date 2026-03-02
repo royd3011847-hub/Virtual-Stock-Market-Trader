@@ -65,7 +65,7 @@ def register():
             user.set_password(password)
             db.session.add(user)
             db.session.commit()
-            flash("User registered! Please login.")
+            flash("User registered! Please login.", "success")
             return redirect(url_for("login"))
     return render_template("register.html")
 
@@ -121,8 +121,22 @@ def portfolioTrader():
     if request.method == 'POST':
         action = request.form['action']
         ticker = request.form['ticker'].upper()
+        # Validate ticker format (1-5 uppercase letters)
         if not bool(re.match(r'^[A-Z]{1,5}$', ticker)):
             flash("Invalid ticker symbol", 'danger')
+            return redirect(url_for('portfolioTrader'))
+        # Check if the ticker on banned list
+        if(is_ETF(ticker)):
+            flash("ETF's, such as " + ticker + " are not allowed.", 'danger')
+            return redirect(url_for('portfolioTrader'))
+        if(is_russell_2000(ticker)):
+            flash("Russell 2000 indices, such as " + ticker + " are not allowed.", 'danger')
+            return redirect(url_for('portfolioTrader'))
+        if(is_mutual_fund(ticker)):
+            flash("Mutual funds, such as " + ticker + " are not allowed.", 'danger')
+            return redirect(url_for('portfolioTrader'))
+        if(is_banned_prefix(ticker)):
+            flash("Tickers starting with " + ticker[:3] + " are not allowed.", 'danger')
             return redirect(url_for('portfolioTrader'))
         portfolio = user.Portfolio
         try:
@@ -179,3 +193,8 @@ if __name__ == '__main__':
 #activate virtual environment:
 #.\venv\Scripts\Activate
 
+#command to set a secret key
+#export SECRET_KEY="some_long_random_string_here"
+
+#deactivate virtual environment:
+#deactivate

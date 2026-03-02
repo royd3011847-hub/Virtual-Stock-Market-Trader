@@ -8,7 +8,7 @@ def plot_stock(ticker_symbol, period="1y", interval="1d"):
 
     if prices.empty:
         print("No data found.")
-        return
+        return 
 
     fig = go.Figure()
 

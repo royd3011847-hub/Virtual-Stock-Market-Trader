@@ -20,10 +20,10 @@
       <div class="login-card">
         <h2>Login</h2>
 
-        {% with messages = get_flashed_messages() %} {% if messages %}
+        {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %}
         <div class="flash-messages">
-          {% for message in messages %}
-          <div class="alert alert-danger">{{ message }}</div>
+          {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
           {% endfor %}
         </div>
         {% endif %} {% endwith %}
